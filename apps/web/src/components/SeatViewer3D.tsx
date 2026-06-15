@@ -6,11 +6,13 @@ import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { SeatDTO } from "@cinema-tix/shared";
 
+export type PovMode = "seat" | "screen" | "free";
+
 interface Props {
   seats: SeatDTO[];
+  mode: PovMode;
   focusId: string;
   selectedIds: Set<string>;
-  // Clicking a seat in the scene hops the POV there.
   onFocusSeat: (seat: SeatDTO) => void;
 }
 
@@ -18,18 +20,20 @@ const EYE_HEIGHT = 1.05;
 const SCREEN_DEPTH = -3;
 const SCREEN_Y = 2.6;
 
-// Colors per seat state.
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+
 function seatColors(seat: SeatDTO, isSelected: boolean, isFocus: boolean) {
-  if (isFocus) return { color: "#e8c987", emissive: "#d4a24e", emi: 0.5 };
+  if (isFocus) return { color: "#e8c987", emissive: "#d4a24e", emi: 0.55 };
   if (isSelected) return { color: "#ff3355", emissive: "#c81e3a", emi: 0.8 };
   if (seat.status === "booked") return { color: "#2c2c30", emissive: "#000", emi: 0 };
   if (seat.status === "locked") return { color: "#6b5a2e", emissive: "#000", emi: 0 };
+  if (seat.type === "DISABLED")
+    return { color: "#1f7a86", emissive: "#0a3a42", emi: 0.25 };
   if (seat.type === "PREMIUM")
-    return { color: "#b01d39", emissive: "#3a0a14", emi: 0.15 };
-  return { color: "#8e1428", emissive: "#000", emi: 0 }; // velvet red
+    return { color: "#b01d39", emissive: "#5a3a10", emi: 0.3 }; // gold-warm trim
+  return { color: "#8e1428", emissive: "#000", emi: 0 }; // velvet red regular
 }
 
-// A single low-poly cinema chair: seat base, backrest, two armrests.
 function CinemaSeat({
   seat,
   isSelected,
@@ -42,13 +46,10 @@ function CinemaSeat({
   onClick: (e: ThreeEvent<MouseEvent>) => void;
 }) {
   const c = seatColors(seat, isSelected, isFocus);
-  const px = seat.x;
-  const pz = seat.y; // depth
-  const py = seat.z; // tier height
-
+  const isPremium = seat.type === "PREMIUM";
   return (
     <group
-      position={[px, py, pz]}
+      position={[seat.x, seat.z, seat.y]}
       onClick={onClick}
       onPointerOver={(e) => {
         e.stopPropagation();
@@ -58,17 +59,21 @@ function CinemaSeat({
         document.body.style.cursor = "default";
       }}
     >
-      {/* seat base */}
-      <mesh position={[0, 0.25, 0]} castShadow>
+      <mesh position={[0, 0.25, 0]}>
         <boxGeometry args={[0.62, 0.16, 0.55]} />
         <meshStandardMaterial color={c.color} emissive={c.emissive} emissiveIntensity={c.emi} roughness={0.7} />
       </mesh>
-      {/* backrest */}
       <mesh position={[0, 0.55, 0.26]}>
-        <boxGeometry args={[0.62, 0.5, 0.12]} />
+        <boxGeometry args={[0.62, isPremium ? 0.62 : 0.5, 0.12]} />
         <meshStandardMaterial color={c.color} emissive={c.emissive} emissiveIntensity={c.emi} roughness={0.7} />
       </mesh>
-      {/* armrests */}
+      {/* premium gold headrest trim */}
+      {isPremium && !isSelected && !isFocus && (
+        <mesh position={[0, 0.85, 0.26]}>
+          <boxGeometry args={[0.62, 0.08, 0.13]} />
+          <meshStandardMaterial color="#d4a24e" emissive="#d4a24e" emissiveIntensity={0.4} />
+        </mesh>
+      )}
       <mesh position={[-0.32, 0.38, 0.05]}>
         <boxGeometry args={[0.08, 0.12, 0.5]} />
         <meshStandardMaterial color="#1a1a1e" roughness={0.5} />
@@ -81,34 +86,64 @@ function CinemaSeat({
   );
 }
 
-// Moves the camera to the focused seat's eye position, smoothly, while keeping
-// OrbitControls free for looking around (transition flag stops the fight).
-function Rig({ focus }: { focus: SeatDTO }) {
-  const { camera, controls } = useThree() as any;
-  const desired = useRef(new THREE.Vector3());
-  const transitioning = useRef(true);
+// Locked first-person look: camera pinned to a position, drag to rotate in place.
+function FirstPersonLook({
+  position,
+  baseYaw,
+}: {
+  position: THREE.Vector3;
+  baseYaw: number;
+}) {
+  const { camera, gl } = useThree();
+  const yaw = useRef(baseYaw);
+  const pitch = useRef(0);
+  const drag = useRef<{ x: number; y: number; yaw: number; pitch: number } | null>(null);
 
   useEffect(() => {
-    desired.current.set(focus.x, focus.z + EYE_HEIGHT, focus.y);
-    transitioning.current = true;
-  }, [focus]);
+    yaw.current = baseYaw;
+    pitch.current = 0;
+  }, [baseYaw, position]);
+
+  useEffect(() => {
+    const el = gl.domElement;
+    const YAW_RANGE = Math.PI / 2.1;
+    const PITCH_RANGE = Math.PI / 5;
+    const start = (x: number, y: number) =>
+      (drag.current = { x, y, yaw: yaw.current, pitch: pitch.current });
+    const apply = (x: number, y: number) => {
+      if (!drag.current) return;
+      yaw.current = clamp(
+        drag.current.yaw - (x - drag.current.x) * 0.005,
+        baseYaw - YAW_RANGE,
+        baseYaw + YAW_RANGE
+      );
+      pitch.current = clamp(
+        drag.current.pitch - (y - drag.current.y) * 0.005,
+        -PITCH_RANGE,
+        PITCH_RANGE
+      );
+    };
+    const down = (e: PointerEvent) => start(e.clientX, e.clientY);
+    const move = (e: PointerEvent) => apply(e.clientX, e.clientY);
+    const up = () => (drag.current = null);
+    el.addEventListener("pointerdown", down);
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    return () => {
+      el.removeEventListener("pointerdown", down);
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+    };
+  }, [gl, baseYaw]);
 
   useFrame(() => {
-    if (transitioning.current) {
-      camera.position.lerp(desired.current, 0.15);
-      if (controls) {
-        controls.target.set(0, SCREEN_Y - 0.6, SCREEN_DEPTH);
-        controls.update();
-      }
-      if (camera.position.distanceTo(desired.current) < 0.02) {
-        transitioning.current = false;
-      }
-    }
+    camera.position.lerp(position, 0.2);
+    camera.rotation.set(pitch.current, yaw.current, 0, "YXZ");
   });
   return null;
 }
 
-export function SeatViewer3D({ seats, focusId, selectedIds, onFocusSeat }: Props) {
+export function SeatViewer3D({ seats, mode, focusId, selectedIds, onFocusSeat }: Props) {
   const focus = useMemo(
     () => seats.find((s) => s.id === focusId) ?? seats[0],
     [seats, focusId]
@@ -118,40 +153,43 @@ export function SeatViewer3D({ seats, focusId, selectedIds, onFocusSeat }: Props
   const screenWidth = Math.max(...xs) - Math.min(...xs) + 5;
   const maxDepth = Math.max(...seats.map((s) => s.y));
 
-  return (
-    <Canvas shadows camera={{ fov: 72, position: [focus.x, focus.z + EYE_HEIGHT, focus.y] }}>
-      <color attach="background" args={["#050507"]} />
-      <fog attach="fog" args={["#050507", 8, 26]} />
+  // Camera target position + facing per mode.
+  const seatPos = useMemo(
+    () => new THREE.Vector3(focus.x, focus.z + EYE_HEIGHT, focus.y),
+    [focus]
+  );
+  const screenPos = useMemo(
+    () => new THREE.Vector3(0, SCREEN_Y + 0.3, SCREEN_DEPTH + 1.2),
+    []
+  );
 
-      <Rig focus={focus} />
-      <OrbitControls
-        makeDefault
-        enablePan={false}
-        enableZoom={false}
-        minPolarAngle={Math.PI / 3.2}
-        maxPolarAngle={Math.PI / 1.9}
-        minAzimuthAngle={-Math.PI / 2.4}
-        maxAzimuthAngle={Math.PI / 2.4}
-        rotateSpeed={-0.4}
-      />
+  return (
+    <Canvas camera={{ fov: 72, position: [focus.x, focus.z + EYE_HEIGHT, focus.y] }}>
+      <color attach="background" args={["#050507"]} />
+      <fog attach="fog" args={["#050507", 8, 30]} />
+
+      {mode === "seat" && <FirstPersonLook position={seatPos} baseYaw={0} />}
+      {mode === "screen" && <FirstPersonLook position={screenPos} baseYaw={Math.PI} />}
+      {mode === "free" && (
+        <OrbitControls
+          makeDefault
+          target={[0, 1.4, maxDepth / 2]}
+          minDistance={2}
+          maxDistance={maxDepth + 12}
+          maxPolarAngle={Math.PI / 1.9}
+        />
+      )}
 
       <ambientLight intensity={0.25} />
-      {/* screen glow as key light */}
-      <pointLight position={[0, SCREEN_Y, SCREEN_DEPTH + 0.5]} intensity={45} color="#cfe0ff" distance={30} />
+      <pointLight position={[0, SCREEN_Y, SCREEN_DEPTH + 0.5]} intensity={45} color="#cfe0ff" distance={34} />
       <spotLight position={[0, 7, maxDepth * 0.4]} angle={0.7} penumbra={0.8} intensity={25} color="#d4a24e" />
 
-      {/* Curved-ish glowing screen */}
+      {/* Screen */}
       <group position={[0, SCREEN_Y, SCREEN_DEPTH]}>
         <mesh>
           <planeGeometry args={[screenWidth, 4.2]} />
-          <meshStandardMaterial
-            color="#eaf1ff"
-            emissive="#aac4ff"
-            emissiveIntensity={0.9}
-            toneMapped={false}
-          />
+          <meshStandardMaterial color="#eaf1ff" emissive="#aac4ff" emissiveIntensity={0.9} toneMapped={false} />
         </mesh>
-        {/* screen frame */}
         <mesh position={[0, 0, -0.1]}>
           <planeGeometry args={[screenWidth + 0.6, 4.8]} />
           <meshStandardMaterial color="#0a0a0c" />
@@ -159,12 +197,12 @@ export function SeatViewer3D({ seats, focusId, selectedIds, onFocusSeat }: Props
       </group>
 
       {/* Floor */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, maxDepth / 2]} receiveShadow>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, maxDepth / 2]}>
         <planeGeometry args={[screenWidth + 6, maxDepth + 8]} />
         <meshStandardMaterial color="#120d0d" roughness={1} />
       </mesh>
 
-      {/* Side walls for enclosure */}
+      {/* Walls */}
       <mesh position={[-(screenWidth / 2 + 1.5), 3, maxDepth / 2]} rotation={[0, Math.PI / 2, 0]}>
         <planeGeometry args={[maxDepth + 10, 8]} />
         <meshStandardMaterial color="#0c0a0a" side={THREE.DoubleSide} />
@@ -174,7 +212,6 @@ export function SeatViewer3D({ seats, focusId, selectedIds, onFocusSeat }: Props
         <meshStandardMaterial color="#0c0a0a" side={THREE.DoubleSide} />
       </mesh>
 
-      {/* Seats */}
       {seats.map((seat) => (
         <CinemaSeat
           key={seat.id}

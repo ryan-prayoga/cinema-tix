@@ -8,6 +8,8 @@ import { useAuth } from "@/lib/auth-store";
 import { getSocket } from "@/lib/socket";
 import { rupiah, formatDateTime } from "@/lib/format";
 import { SeatMap } from "@/components/SeatMap";
+import { MiniMap } from "@/components/MiniMap";
+import type { PovMode } from "@/components/SeatViewer3D";
 import type { SeatMapResponse, SeatDTO, BookingDTO } from "@cinema-tix/shared";
 
 const SeatViewer3D = dynamic(
@@ -30,6 +32,7 @@ export default function SeatPickerPage() {
   const [data, setData] = useState<SeatMapResponse | null>(null);
   const [selected, setSelected] = useState<Map<string, SeatDTO>>(new Map());
   const [focusId, setFocusId] = useState<string | null>(null); // POV open when set
+  const [povMode, setPovMode] = useState<PovMode>("seat");
   const [busy, setBusy] = useState(false);
 
   const selectedRef = useRef(selected);
@@ -154,6 +157,13 @@ export default function SeatPickerPage() {
       selectedList[selectedList.length - 1] ??
       data.seats[Math.floor(data.seats.length / 2)];
     setFocusId((seat ?? fallback).id);
+    setPovMode("seat");
+  };
+
+  // Hop POV to a seat (from 3D tap or minimap) — always lands in seat mode.
+  const hopToSeat = (seat: SeatDTO) => {
+    setFocusId(seat.id);
+    setPovMode("seat");
   };
 
   if (!data) return <p className="font-mono text-sm text-cream/40">Memuat kursi…</p>;
@@ -200,6 +210,7 @@ export default function SeatPickerPage() {
       <div className="card p-5 sm:p-8">
         <SeatMap
           seats={data.seats}
+          cols={data.auditorium.cols}
           screenLabel={data.auditorium.screenLabel}
           selected={new Set(selected.keys())}
           onToggle={toggleSeat}
@@ -210,17 +221,39 @@ export default function SeatPickerPage() {
       {/* ===== POV 3D modal ===== */}
       {focusSeat && (
         <div className="fixed inset-0 z-50 flex flex-col bg-black">
-          <div className="flex items-center justify-between border-b border-white/10 px-5 py-3">
-            <div>
+          <div className="flex items-center justify-between gap-3 border-b border-white/10 px-5 py-3">
+            <div className="min-w-0">
               <p className="font-mono text-[11px] uppercase tracking-widest text-gold">
-                Pratinjau POV
+                {povMode === "seat"
+                  ? `POV Kursi ${focusSeat.rowLabel}${focusSeat.colNumber}`
+                  : povMode === "screen"
+                    ? "POV dari Layar"
+                    : "Kamera Bebas"}
               </p>
-              <p className="font-display text-2xl tracking-wide text-cream">
-                Kursi {focusSeat.rowLabel}
-                {focusSeat.colNumber}
-              </p>
+              {/* mode switcher */}
+              <div className="mt-1 flex gap-1 rounded-lg bg-black/40 p-1 ring-1 ring-white/10">
+                {(
+                  [
+                    ["seat", "Kursi"],
+                    ["screen", "Layar"],
+                    ["free", "Bebas"],
+                  ] as [PovMode, string][]
+                ).map(([m, label]) => (
+                  <button
+                    key={m}
+                    onClick={() => setPovMode(m)}
+                    className={`rounded-md px-3 py-1 font-mono text-xs transition ${
+                      povMode === m
+                        ? "bg-gold text-ink"
+                        : "text-cream/60 hover:text-cream"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
-            <button onClick={() => setFocusId(null)} className="btn-ghost text-sm">
+            <button onClick={() => setFocusId(null)} className="btn-ghost shrink-0 text-sm">
               Tutup ✕
             </button>
           </div>
@@ -228,13 +261,27 @@ export default function SeatPickerPage() {
           <div className="relative flex-1">
             <SeatViewer3D
               seats={data.seats}
+              mode={povMode}
               focusId={focusSeat.id}
               selectedIds={new Set(selected.keys())}
-              onFocusSeat={(s) => setFocusId(s.id)}
+              onFocusSeat={hopToSeat}
             />
-            <p className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 font-mono text-[11px] text-cream/60 backdrop-blur">
-              Seret untuk menengok · ketuk kursi untuk pindah POV
+            <p className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 text-center font-mono text-[11px] text-cream/60 backdrop-blur">
+              {povMode === "free"
+                ? "Seret memutar · scroll/cubit zoom · ketuk kursi untuk pilih POV"
+                : "Seret untuk menengok · ketuk kursi untuk pindah POV"}
             </p>
+
+            {/* Minimap — pick any seat to jump POV */}
+            <div className="absolute right-3 top-3 w-40 sm:w-48">
+              <MiniMap
+                seats={data.seats}
+                cols={data.auditorium.cols}
+                selected={new Set(selected.keys())}
+                focusId={focusSeat.id}
+                onPick={hopToSeat}
+              />
+            </div>
           </div>
 
           {/* Control panel */}
@@ -262,31 +309,33 @@ export default function SeatPickerPage() {
               </div>
             )}
 
-            <div className="flex flex-wrap gap-2">
-              {/* select / unselect current */}
-              <button
-                onClick={() => toggleSeat(focusSeat)}
-                disabled={!focusBookable}
-                className={
-                  isFocusSelected
-                    ? "btn-ghost flex-1 disabled:opacity-40"
-                    : "btn-primary flex-1 disabled:opacity-40"
-                }
-              >
-                {isFocusSelected
-                  ? "Lepas kursi ini"
-                  : focusBookable
-                    ? `Duduk di sini · ${rupiah(focusSeat.price)}`
-                    : "Kursi tidak tersedia"}
-              </button>
-
-              {/* swap last selected → here (auto ganti kursi) */}
-              {canSwap && (
-                <button onClick={swapToFocus} className="btn-ghost">
-                  ⇄ Pindah ke sini
+            {povMode === "seat" && (
+              <div className="flex flex-wrap gap-2">
+                {/* select / unselect current */}
+                <button
+                  onClick={() => toggleSeat(focusSeat)}
+                  disabled={!focusBookable}
+                  className={
+                    isFocusSelected
+                      ? "btn-ghost flex-1 disabled:opacity-40"
+                      : "btn-primary flex-1 disabled:opacity-40"
+                  }
+                >
+                  {isFocusSelected
+                    ? "Lepas kursi ini"
+                    : focusBookable
+                      ? `Duduk di sini · ${rupiah(focusSeat.price)}`
+                      : "Kursi tidak tersedia"}
                 </button>
-              )}
-            </div>
+
+                {/* swap last selected → here (auto ganti kursi) */}
+                {canSwap && (
+                  <button onClick={swapToFocus} className="btn-ghost">
+                    ⇄ Pindah ke sini
+                  </button>
+                )}
+              </div>
+            )}
 
             {selectedList.length > 0 && (
               <button

@@ -3,12 +3,16 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-// Build seat rows for an auditorium with layout coords.
+// Build seat rows for an auditorium with a realistic layout.
 // x = horizontal (per column), y = depth from screen (per row), z = tier height.
+// AISLE_COLS are left empty (walkways/stairs); col index still drives x so the
+// gap shows in both the 2D map and the 3D scene. Entrance gaps notch the back row.
+const AISLE_COLS = new Set([5, 10]); // empty walkway columns
+
 function buildSeats(rows: number, cols: number) {
   const SEAT_GAP = 1.0; // metres between seat centres
-  const ROW_GAP = 1.1;
-  const TIER_STEP = 0.25; // each row back rises this much
+  const ROW_GAP = 1.15;
+  const TIER_STEP = 0.28; // each row back rises this much
   const seats: {
     rowLabel: string;
     colNumber: number;
@@ -19,13 +23,20 @@ function buildSeats(rows: number, cols: number) {
   }[] = [];
   for (let r = 0; r < rows; r++) {
     const rowLabel = String.fromCharCode(65 + r); // A, B, C...
-    // Back two rows are PREMIUM; aisle seats stay regular.
-    const isPremium = r >= rows - 2;
+    const isBackPremium = r >= rows - 2; // back two rows = PREMIUM
     for (let c = 1; c <= cols; c++) {
+      if (AISLE_COLS.has(c)) continue; // walkway — no seat
+      // Entrance/exit notches: drop back-row corners.
+      if (r === rows - 1 && (c === 1 || c === cols)) continue;
+
+      let type: SeatType = isBackPremium ? "PREMIUM" : "REGULAR";
+      // Accessible seats: front row, next to each aisle.
+      if (r === 0 && (c === 4 || c === 6 || c === 9 || c === 11)) type = "DISABLED";
+
       seats.push({
         rowLabel,
         colNumber: c,
-        type: isPremium ? "PREMIUM" : "REGULAR",
+        type,
         x: (c - (cols + 1) / 2) * SEAT_GAP, // centre around 0
         y: (r + 1) * ROW_GAP, // distance from screen
         z: r * TIER_STEP,
@@ -103,7 +114,7 @@ async function main() {
     const cinema = await prisma.cinema.create({ data: c });
     for (let i = 1; i <= 2; i++) {
       const rows = 8;
-      const cols = 12;
+      const cols = 14;
       const aud = await prisma.auditorium.create({
         data: {
           cinemaId: cinema.id,

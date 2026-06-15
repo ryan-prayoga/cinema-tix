@@ -5,10 +5,10 @@ import type { SeatDTO } from "@cinema-tix/shared";
 
 interface Props {
   seats: SeatDTO[];
+  cols: number; // auditorium width — drives aisle gaps
   screenLabel: string;
   selected: Set<string>;
   onToggle: (seat: SeatDTO) => void;
-  // Optional: seat currently previewed in 3D (gets a ring).
   focusId?: string | null;
 }
 
@@ -21,23 +21,35 @@ function seatClass(seat: SeatDTO, isSelected: boolean, isFocus: boolean): string
     case "locked":
       return "bg-gold/25 text-gold cursor-not-allowed" + ring;
     default:
-      return (
-        (seat.type === "PREMIUM"
-          ? "bg-crimson/15 text-cream/70 ring-1 ring-crimson/40 hover:bg-crimson/40 hover:text-white"
-          : "bg-white/10 text-cream/60 hover:bg-crimson/60 hover:text-white") + ring
-      );
+      if (seat.type === "PREMIUM")
+        return (
+          "bg-crimson/20 text-gold ring-1 ring-gold/40 hover:bg-crimson/50 hover:text-white" +
+          ring
+        );
+      if (seat.type === "DISABLED")
+        return (
+          "bg-sky-500/20 text-sky-300 ring-1 ring-sky-400/40 hover:bg-sky-500/40" +
+          ring
+        );
+      return "bg-white/10 text-cream/60 hover:bg-crimson/60 hover:text-white" + ring;
   }
 }
 
-export function SeatMap({ seats, screenLabel, selected, onToggle, focusId }: Props) {
+export function SeatMap({
+  seats,
+  cols,
+  screenLabel,
+  selected,
+  onToggle,
+  focusId,
+}: Props) {
+  // Group into rows; index each row by colNumber so we can render aisle gaps.
   const rows = useMemo(() => {
-    const map = new Map<string, SeatDTO[]>();
+    const map = new Map<string, Map<number, SeatDTO>>();
     for (const s of seats) {
-      if (!map.has(s.rowLabel)) map.set(s.rowLabel, []);
-      map.get(s.rowLabel)!.push(s);
+      if (!map.has(s.rowLabel)) map.set(s.rowLabel, new Map());
+      map.get(s.rowLabel)!.set(s.colNumber, s);
     }
-    for (const list of map.values())
-      list.sort((a, b) => a.colNumber - b.colNumber);
     return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
   }, [seats]);
 
@@ -59,41 +71,42 @@ export function SeatMap({ seats, screenLabel, selected, onToggle, focusId }: Pro
 
       <div className="space-y-2 overflow-x-auto pb-2">
         {rows.map(([label, rowSeats]) => (
-          <div key={label} className="flex items-center gap-2">
-            <span className="w-5 text-center font-mono text-[11px] text-cream/30">
+          <div key={label} className="flex items-center gap-1.5">
+            <span className="w-5 shrink-0 text-center font-mono text-[11px] text-cream/30">
               {label}
             </span>
-            <div className="flex gap-1.5">
-              {rowSeats.map((seat) => {
-                const isSelected = selected.has(seat.id);
-                const disabled =
-                  seat.status === "booked" ||
-                  (seat.status === "locked" && !isSelected);
-                return (
-                  <button
-                    key={seat.id}
-                    disabled={disabled}
-                    onClick={() => onToggle(seat)}
-                    title={`${seat.rowLabel}${seat.colNumber} · ${seat.type}`}
-                    className={`grid h-7 w-7 place-items-center rounded-md rounded-b-lg font-mono text-[10px] transition ${seatClass(
-                      seat,
-                      isSelected,
-                      seat.id === focusId
-                    )}`}
-                  >
-                    {seat.colNumber}
-                  </button>
-                );
-              })}
-            </div>
+            {Array.from({ length: cols }, (_, i) => i + 1).map((col) => {
+              const seat = rowSeats.get(col);
+              if (!seat) return <span key={col} className="h-7 w-7 shrink-0" />;
+              const isSelected = selected.has(seat.id);
+              const disabled =
+                seat.status === "booked" ||
+                (seat.status === "locked" && !isSelected);
+              return (
+                <button
+                  key={col}
+                  disabled={disabled}
+                  onClick={() => onToggle(seat)}
+                  title={`${seat.rowLabel}${seat.colNumber} · ${seat.type}`}
+                  className={`grid h-7 w-7 shrink-0 place-items-center rounded-md rounded-b-lg font-mono text-[10px] transition ${seatClass(
+                    seat,
+                    isSelected,
+                    seat.id === focusId
+                  )}`}
+                >
+                  {seat.type === "DISABLED" ? "♿" : seat.colNumber}
+                </button>
+              );
+            })}
           </div>
         ))}
       </div>
 
       {/* Legend */}
       <div className="mt-8 flex flex-wrap justify-center gap-x-4 gap-y-2 font-mono text-[11px] text-cream/50">
-        <Legend cls="bg-white/10" label="Kosong" />
-        <Legend cls="bg-crimson/15 ring-1 ring-crimson/40" label="Premium" />
+        <Legend cls="bg-white/10" label="Reguler" />
+        <Legend cls="bg-crimson/20 ring-1 ring-gold/40" label="Premium" />
+        <Legend cls="bg-sky-500/20 ring-1 ring-sky-400/40" label="Aksesibel" />
         <Legend cls="bg-crimson shadow-glow" label="Pilihanmu" />
         <Legend cls="bg-gold/25" label="Dipilih org lain" />
         <Legend cls="bg-white/5" label="Terisi" />
