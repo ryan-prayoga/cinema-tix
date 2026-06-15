@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Bebas_Neue, Sora, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { NavBar } from "@/components/NavBar";
+import { AppShell } from "@/components/AppShell";
 
 // Marquee display + refined body + mono for seat labels/prices.
 const bebas = Bebas_Neue({
@@ -34,6 +35,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -49,9 +52,7 @@ export default function RootLayout({
       <body className="min-h-screen font-body grain">
         <div className="spotlight" aria-hidden />
         <NavBar />
-        <main className="relative z-10 mx-auto max-w-6xl px-5 py-8">
-          {children}
-        </main>
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

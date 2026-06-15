@@ -7,8 +7,21 @@
 }
 
 @layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* App-like touch behaviour */
+  button,
+  a {
+    touch-action: manipulation;
+  }
+
   body {
     @apply bg-ink text-cream antialiased;
+    min-height: 100dvh;
+    overscroll-behavior-y: none;
     background-image:
       radial-gradient(
         1200px 600px at 50% -10%,
@@ -87,6 +100,30 @@
     @apply w-full rounded-lg bg-black/30 px-4 py-3 text-cream
       ring-1 ring-white/10 outline-none transition
       placeholder:text-cream/30 focus:ring-gold/60;
+  }
+}
+
+@layer utilities {
+  /* Safe-area insets (notch / home indicator) */
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .bottom-safe {
+    bottom: env(safe-area-inset-bottom);
+  }
+  /* Reserve room for the fixed bottom tab bar + home indicator */
+  .pb-nav {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }
 

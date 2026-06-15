@@ -33,6 +33,7 @@ export default function SeatPickerPage() {
   const [selected, setSelected] = useState<Map<string, SeatDTO>>(new Map());
   const [focusId, setFocusId] = useState<string | null>(null); // POV open when set
   const [povMode, setPovMode] = useState<PovMode>("seat");
+  const [showMini, setShowMini] = useState(true);
   const [busy, setBusy] = useState(false);
 
   const selectedRef = useRef(selected);
@@ -221,7 +222,7 @@ export default function SeatPickerPage() {
       {/* ===== POV 3D modal ===== */}
       {focusSeat && (
         <div className="fixed inset-0 z-50 flex flex-col bg-black">
-          <div className="flex items-center justify-between gap-3 border-b border-white/10 px-5 py-3">
+          <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3 pt-safe sm:px-5">
             <div className="min-w-0">
               <p className="font-mono text-[11px] uppercase tracking-widest text-gold">
                 {povMode === "seat"
@@ -253,9 +254,20 @@ export default function SeatPickerPage() {
                 ))}
               </div>
             </div>
-            <button onClick={() => setFocusId(null)} className="btn-ghost shrink-0 text-sm">
-              Tutup ✕
-            </button>
+            <div className="flex shrink-0 gap-2">
+              <button
+                onClick={() => setShowMini((v) => !v)}
+                className={`rounded-lg px-3 py-2 text-sm ring-1 ring-white/10 transition ${
+                  showMini ? "bg-gold text-ink" : "bg-white/5 text-cream/70"
+                }`}
+                title="Peta kursi"
+              >
+                🗺
+              </button>
+              <button onClick={() => setFocusId(null)} className="btn-ghost text-sm">
+                ✕
+              </button>
+            </div>
           </div>
 
           <div className="relative flex-1">
@@ -273,19 +285,21 @@ export default function SeatPickerPage() {
             </p>
 
             {/* Minimap — pick any seat to jump POV */}
-            <div className="absolute right-3 top-3 w-40 sm:w-48">
-              <MiniMap
-                seats={data.seats}
-                cols={data.auditorium.cols}
-                selected={new Set(selected.keys())}
-                focusId={focusSeat.id}
-                onPick={hopToSeat}
-              />
-            </div>
+            {showMini && (
+              <div className="absolute right-2 top-2 w-32 sm:right-3 sm:top-3 sm:w-48">
+                <MiniMap
+                  seats={data.seats}
+                  cols={data.auditorium.cols}
+                  selected={new Set(selected.keys())}
+                  focusId={focusSeat.id}
+                  onPick={hopToSeat}
+                />
+              </div>
+            )}
           </div>
 
           {/* Control panel */}
-          <div className="border-t border-white/10 bg-panel/95 px-5 py-4 backdrop-blur">
+          <div className="border-t border-white/10 bg-panel/95 px-4 py-4 pb-safe backdrop-blur sm:px-5">
             {/* selected chips → jump POV (kembali ke kursi semula) */}
             {selectedList.length > 0 && (
               <div className="mb-3 flex items-center gap-2 overflow-x-auto">
@@ -355,8 +369,8 @@ export default function SeatPickerPage() {
 
       {/* ===== bottom summary bar (2D mode) ===== */}
       {selectedList.length > 0 && !focusSeat && (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-panel/95 backdrop-blur">
-          <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-5 py-3">
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-panel/95 pb-safe backdrop-blur">
+          <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-5">
             <div className="min-w-0">
               <p className="truncate font-mono text-xs text-cream/60">
                 {selectedList.map((s) => `${s.rowLabel}${s.colNumber}`).join(" · ")}

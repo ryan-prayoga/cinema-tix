@@ -9,8 +9,8 @@ export function NavBar() {
   const router = useRouter();
 
   return (
-    <header className="sticky top-0 z-30 border-b border-white/5 bg-ink/70 backdrop-blur-xl">
-      <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
+    <header className="sticky top-0 z-30 border-b border-white/5 bg-ink/70 pt-safe backdrop-blur-xl">
+      <nav className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3.5 sm:px-5 sm:py-4">
         <Link href="/" className="group flex items-center gap-2.5">
           <span className="grid h-8 w-8 place-items-center rounded-md bg-crimson text-base shadow-glow">
             🎟
@@ -21,6 +21,7 @@ export function NavBar() {
         </Link>
 
         <div className="flex items-center gap-5 text-sm">
+          {/* Desktop nav links — on mobile the bottom tab bar handles these */}
           <Link
             href="/cinemas"
             className="hidden text-cream/70 transition hover:text-gold sm:block"
@@ -31,7 +32,7 @@ export function NavBar() {
             <>
               <Link
                 href="/tickets"
-                className="text-cream/70 transition hover:text-gold"
+                className="hidden text-cream/70 transition hover:text-gold sm:block"
               >
                 Tiket Saya
               </Link>
@@ -40,10 +41,13 @@ export function NavBar() {
                   logout();
                   router.push("/");
                 }}
-                className="rounded-lg px-3 py-1.5 text-cream/50 ring-1 ring-white/10 transition hover:text-crimson-glow"
+                className="hidden rounded-lg px-3 py-1.5 text-cream/50 ring-1 ring-white/10 transition hover:text-crimson-glow sm:block"
               >
                 {user.name.split(" ")[0]} · Keluar
               </button>
+              <span className="font-mono text-xs text-gold sm:hidden">
+                {user.name.split(" ")[0]}
+              </span>
             </>
           ) : (
             <Link href="/login" className="btn-primary text-sm">

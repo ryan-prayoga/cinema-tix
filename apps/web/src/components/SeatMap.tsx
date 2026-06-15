@@ -69,7 +69,8 @@ export function SeatMap({
         </p>
       </div>
 
-      <div className="space-y-2 overflow-x-auto pb-2">
+      <div className="no-scrollbar w-full overflow-x-auto pb-2">
+       <div className="mx-auto w-max space-y-2">
         {rows.map(([label, rowSeats]) => (
           <div key={label} className="flex items-center gap-1.5">
             <span className="w-5 shrink-0 text-center font-mono text-[11px] text-cream/30">
@@ -77,7 +78,8 @@ export function SeatMap({
             </span>
             {Array.from({ length: cols }, (_, i) => i + 1).map((col) => {
               const seat = rowSeats.get(col);
-              if (!seat) return <span key={col} className="h-7 w-7 shrink-0" />;
+              if (!seat)
+                return <span key={col} className="h-8 w-8 shrink-0 sm:h-7 sm:w-7" />;
               const isSelected = selected.has(seat.id);
               const disabled =
                 seat.status === "booked" ||
@@ -88,7 +90,7 @@ export function SeatMap({
                   disabled={disabled}
                   onClick={() => onToggle(seat)}
                   title={`${seat.rowLabel}${seat.colNumber} · ${seat.type}`}
-                  className={`grid h-7 w-7 shrink-0 place-items-center rounded-md rounded-b-lg font-mono text-[10px] transition ${seatClass(
+                  className={`grid h-8 w-8 shrink-0 place-items-center rounded-md rounded-b-lg font-mono text-[11px] transition active:scale-90 sm:h-7 sm:w-7 sm:text-[10px] ${seatClass(
                     seat,
                     isSelected,
                     seat.id === focusId
@@ -100,6 +102,7 @@ export function SeatMap({
             })}
           </div>
         ))}
+       </div>
       </div>
 
       {/* Legend */}
