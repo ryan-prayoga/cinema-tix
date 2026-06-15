@@ -73,11 +73,11 @@ export default function CheckoutPage() {
             {booking.showtime && formatDateTime(booking.showtime.startsAt)}
           </p>
 
-          {/* perforation */}
-          <div className="my-5 flex items-center gap-2">
-            <div className="h-3 w-3 -ml-7 rounded-full bg-ink" />
-            <div className="flex-1 border-t border-dashed border-white/15" />
-            <div className="h-3 w-3 -mr-7 rounded-full bg-ink" />
+          {/* perforation — notch circles sit on the card edges, clipped by overflow */}
+          <div className="relative my-5 h-0">
+            <span className="absolute -left-6 top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-ink" />
+            <span className="absolute -right-6 top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-ink" />
+            <div className="border-t border-dashed border-white/15" />
           </div>
 
           <div className="space-y-1.5 font-mono text-sm">
