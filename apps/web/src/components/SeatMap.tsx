@@ -69,8 +69,8 @@ export function SeatMap({
         </p>
       </div>
 
-      <div className="no-scrollbar w-full overflow-x-auto pb-2">
-       <div className="mx-auto w-max space-y-2">
+      <div className="no-scrollbar w-full overflow-x-auto px-1 pb-2">
+       <div className="w-max space-y-2 sm:mx-auto">
         {rows.map(([label, rowSeats]) => (
           <div key={label} className="flex items-center gap-1.5">
             <span className="w-5 shrink-0 text-center font-mono text-[11px] text-cream/30">

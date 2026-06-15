@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { api } from "@/lib/api";
@@ -35,6 +36,8 @@ export default function SeatPickerPage() {
   const [povMode, setPovMode] = useState<PovMode>("seat");
   const [showMini, setShowMini] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const selectedRef = useRef(selected);
   selectedRef.current = selected;
@@ -208,7 +211,7 @@ export default function SeatPickerPage() {
         </button>
       </div>
 
-      <div className="card p-5 sm:p-8">
+      <div className="card p-3 sm:p-8">
         <SeatMap
           seats={data.seats}
           cols={data.auditorium.cols}
@@ -219,9 +222,11 @@ export default function SeatPickerPage() {
         />
       </div>
 
-      {/* ===== POV 3D modal ===== */}
-      {focusSeat && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-black">
+      {/* ===== POV 3D modal (portalled to <body> so it covers the nav) ===== */}
+      {mounted &&
+        focusSeat &&
+        createPortal(
+          <div className="fixed inset-0 z-[100] flex flex-col bg-black">
           <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3 pt-safe sm:px-5">
             <div className="min-w-0">
               <p className="font-mono text-[11px] uppercase tracking-widest text-gold">
@@ -278,10 +283,10 @@ export default function SeatPickerPage() {
               selectedIds={new Set(selected.keys())}
               onFocusSeat={hopToSeat}
             />
-            <p className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 text-center font-mono text-[11px] text-cream/60 backdrop-blur">
+            <p className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-black/55 px-3 py-1 text-center font-mono text-[10px] text-cream/60 backdrop-blur sm:text-[11px]">
               {povMode === "free"
-                ? "Seret memutar · scroll/cubit zoom · ketuk kursi untuk pilih POV"
-                : "Seret untuk menengok · ketuk kursi untuk pindah POV"}
+                ? "Seret memutar · cubit zoom · ketuk kursi"
+                : "Seret menengok · ketuk kursi pindah POV"}
             </p>
 
             {/* Minimap — pick any seat to jump POV */}
@@ -364,8 +369,9 @@ export default function SeatPickerPage() {
               </button>
             )}
           </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
 
       {/* ===== bottom summary bar (2D mode) ===== */}
       {selectedList.length > 0 && !focusSeat && (
