@@ -69,8 +69,9 @@ export function SeatMap({
         </p>
       </div>
 
-      {/* Scroller: centers when it fits, scrolls from column 1 when wider. */}
-      <div className="no-scrollbar mx-auto w-max max-w-full overflow-x-auto px-3 pb-2">
+      {/* Scroller: centers when it fits, scrolls from column 1 when wider.
+          py-2 keeps seat rings/borders from being clipped at the edges. */}
+      <div className="no-scrollbar mx-auto w-max max-w-full overflow-x-auto px-3 py-2">
        <div className="w-max space-y-2">
         {rows.map(([label, rowSeats]) => (
           <div key={label} className="flex items-center gap-1.5">
