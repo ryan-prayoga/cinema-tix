@@ -1,6 +1,10 @@
 # cinema-tix
 
+[![Deploy](https://github.com/ryan-prayoga/cinema-tix/actions/workflows/deploy.yml/badge.svg)](https://github.com/ryan-prayoga/cinema-tix/actions/workflows/deploy.yml)
+
 PWA cinema ticketing — login, pilih film/bioskop/jadwal, pilih kursi (realtime lock), 3D POV view, checkout (mock pay).
+
+**Live**: [cinema.ryanprayoga.dev](https://cinema.ryanprayoga.dev) · API [cinema-api.ryanprayoga.dev](https://cinema-api.ryanprayoga.dev)
 
 ## Stack
 - **web**: Next.js (App Router) + PWA + react-three-fiber (3D seat POV)
