@@ -34,15 +34,43 @@ function seatColors(seat: SeatDTO, isSelected: boolean, isFocus: boolean) {
   return { color: "#8e1428", emissive: "#000", emi: 0 }; // velvet red regular
 }
 
+// A simple low-poly seated person. variant 'you' = warm/lit, 'other' = dark silhouette.
+function Person({ variant }: { variant: "you" | "other" }) {
+  const shirt = variant === "you" ? "#e8c987" : "#26262c";
+  const skin = variant === "you" ? "#d8a982" : "#1c1c20";
+  const emi = variant === "you" ? 0.25 : 0;
+  return (
+    <group position={[0, 0.33, 0.04]}>
+      {/* torso */}
+      <mesh position={[0, 0.3, 0]}>
+        <capsuleGeometry args={[0.17, 0.32, 4, 10]} />
+        <meshStandardMaterial color={shirt} emissive={shirt} emissiveIntensity={emi} roughness={0.8} />
+      </mesh>
+      {/* head */}
+      <mesh position={[0, 0.66, 0.01]}>
+        <sphereGeometry args={[0.13, 16, 16]} />
+        <meshStandardMaterial color={skin} roughness={0.7} />
+      </mesh>
+      {/* lap / thighs */}
+      <mesh position={[0, 0.02, 0.2]} rotation={[Math.PI / 2.5, 0, 0]}>
+        <capsuleGeometry args={[0.11, 0.26, 4, 8]} />
+        <meshStandardMaterial color={shirt} emissive={shirt} emissiveIntensity={emi} roughness={0.8} />
+      </mesh>
+    </group>
+  );
+}
+
 function CinemaSeat({
   seat,
   isSelected,
   isFocus,
+  occupant,
   onClick,
 }: {
   seat: SeatDTO;
   isSelected: boolean;
   isFocus: boolean;
+  occupant: "you" | "other" | null;
   onClick: (e: ThreeEvent<MouseEvent>) => void;
 }) {
   const c = seatColors(seat, isSelected, isFocus);
@@ -82,6 +110,8 @@ function CinemaSeat({
         <boxGeometry args={[0.08, 0.12, 0.5]} />
         <meshStandardMaterial color="#1a1a1e" roughness={0.5} />
       </mesh>
+
+      {occupant && <Person variant={occupant} />}
     </group>
   );
 }
@@ -212,19 +242,33 @@ export function SeatViewer3D({ seats, mode, focusId, selectedIds, onFocusSeat }:
         <meshStandardMaterial color="#0c0a0a" side={THREE.DoubleSide} />
       </mesh>
 
-      {seats.map((seat) => (
-        <CinemaSeat
-          key={seat.id}
-          seat={seat}
-          isSelected={selectedIds.has(seat.id)}
-          isFocus={seat.id === focusId}
-          onClick={(e) => {
-            e.stopPropagation();
-            if (seat.status === "booked") return;
-            onFocusSeat(seat);
-          }}
-        />
-      ))}
+      {seats.map((seat) => {
+        const isSelected = selectedIds.has(seat.id);
+        // Show a person on selected ('you') and booked ('other') seats — but not
+        // on the seat you're currently sitting in (first-person POV).
+        const occupant: "you" | "other" | null =
+          mode === "seat" && seat.id === focusId
+            ? null
+            : isSelected
+              ? "you"
+              : seat.status === "booked"
+                ? "other"
+                : null;
+        return (
+          <CinemaSeat
+            key={seat.id}
+            seat={seat}
+            isSelected={isSelected}
+            isFocus={seat.id === focusId}
+            occupant={occupant}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (seat.status === "booked") return;
+              onFocusSeat(seat);
+            }}
+          />
+        );
+      })}
     </Canvas>
   );
 }
