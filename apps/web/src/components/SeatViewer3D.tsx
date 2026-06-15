@@ -34,27 +34,59 @@ function seatColors(seat: SeatDTO, isSelected: boolean, isFocus: boolean) {
   return { color: "#8e1428", emissive: "#000", emi: 0 }; // velvet red regular
 }
 
-// A simple low-poly seated person. variant 'you' = warm/lit, 'other' = dark silhouette.
+// Low-poly seated person, scaled to sit inside the chair (hips on the seat base,
+// back against the backrest at +z, thighs forward toward the screen at -z).
+// variant 'you' = warm/lit, 'other' = dark silhouette.
 function Person({ variant }: { variant: "you" | "other" }) {
-  const shirt = variant === "you" ? "#e8c987" : "#26262c";
+  const shirt = variant === "you" ? "#caa24a" : "#24242a";
   const skin = variant === "you" ? "#d8a982" : "#1c1c20";
-  const emi = variant === "you" ? 0.25 : 0;
+  const hair = variant === "you" ? "#3a2417" : "#141417";
+  const emi = variant === "you" ? 0.18 : 0;
+  const mat = (c: string) => (
+    <meshStandardMaterial color={c} emissive={c} emissiveIntensity={emi} roughness={0.85} />
+  );
+
+  // Origin at the seat-base top surface, seat centre.
   return (
-    <group position={[0, 0.33, 0.04]}>
-      {/* torso */}
-      <mesh position={[0, 0.3, 0]}>
-        <capsuleGeometry args={[0.17, 0.32, 4, 10]} />
-        <meshStandardMaterial color={shirt} emissive={shirt} emissiveIntensity={emi} roughness={0.8} />
+    <group position={[0, 0.33, 0]}>
+      {/* hips */}
+      <mesh position={[0, 0.1, 0.12]}>
+        <boxGeometry args={[0.34, 0.18, 0.26]} />
+        {mat(shirt)}
+      </mesh>
+      {/* thighs going forward to the knees */}
+      <mesh position={[-0.09, 0.05, -0.06]} rotation={[Math.PI / 2, 0, 0]}>
+        <capsuleGeometry args={[0.08, 0.26, 4, 8]} />
+        {mat(shirt)}
+      </mesh>
+      <mesh position={[0.09, 0.05, -0.06]} rotation={[Math.PI / 2, 0, 0]}>
+        <capsuleGeometry args={[0.08, 0.26, 4, 8]} />
+        {mat(shirt)}
+      </mesh>
+      {/* torso leaning back into the seat */}
+      <mesh position={[0, 0.42, 0.14]} rotation={[-0.12, 0, 0]}>
+        <capsuleGeometry args={[0.14, 0.28, 4, 12]} />
+        {mat(shirt)}
+      </mesh>
+      {/* shoulders */}
+      <mesh position={[0, 0.56, 0.13]}>
+        <boxGeometry args={[0.34, 0.12, 0.18]} />
+        {mat(shirt)}
+      </mesh>
+      {/* neck */}
+      <mesh position={[0, 0.66, 0.12]}>
+        <cylinderGeometry args={[0.05, 0.05, 0.08, 8]} />
+        {mat(skin)}
       </mesh>
       {/* head */}
-      <mesh position={[0, 0.66, 0.01]}>
-        <sphereGeometry args={[0.13, 16, 16]} />
-        <meshStandardMaterial color={skin} roughness={0.7} />
+      <mesh position={[0, 0.76, 0.11]}>
+        <sphereGeometry args={[0.105, 16, 16]} />
+        {mat(skin)}
       </mesh>
-      {/* lap / thighs */}
-      <mesh position={[0, 0.02, 0.2]} rotation={[Math.PI / 2.5, 0, 0]}>
-        <capsuleGeometry args={[0.11, 0.26, 4, 8]} />
-        <meshStandardMaterial color={shirt} emissive={shirt} emissiveIntensity={emi} roughness={0.8} />
+      {/* hair cap */}
+      <mesh position={[0, 0.8, 0.12]} scale={[1, 0.8, 1]}>
+        <sphereGeometry args={[0.11, 16, 16, 0, Math.PI * 2, 0, Math.PI / 1.7]} />
+        {mat(hair)}
       </mesh>
     </group>
   );
