@@ -11,49 +11,38 @@ concurrency:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, cinema-tix]
     steps:
-      - name: Deploy to VPS
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ubuntu
-          key: ${{ secrets.SERVER_DEPLOY_KEY }}
-          port: 22
-          command_timeout: 20m
-          script: |
-            set -Eeuo pipefail
-            export NVM_DIR="$HOME/.nvm"
-            [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
-            export PATH="$HOME/.local/bin:$PATH"
+      - name: Pull, build, reload
+        working-directory: /home/ubuntu/projects/cinema-tix
+        run: |
+          set -Eeuo pipefail
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+          export PATH="$HOME/.local/bin:$PATH"
 
-            PROJECT_DIR="/home/ubuntu/projects/cinema-tix"
-            cd "$PROJECT_DIR"
+          echo "[DEPLOY] Pull latest"
+          git fetch --prune origin
+          git checkout main
+          git reset --hard origin/main
 
-            echo "[DEPLOY] Pull latest"
-            git fetch --prune origin
-            git checkout main
-            git reset --hard origin/main
+          echo "[DEPLOY] Install deps"
+          npm install --no-audit --no-fund
 
-            echo "[DEPLOY] Install deps"
-            npm install --no-audit --no-fund
+          echo "[DEPLOY] Prisma generate + migrate"
+          npm run prisma:generate --workspace=apps/api
+          npm run prisma:migrate:deploy --workspace=apps/api
 
-            echo "[DEPLOY] Prisma generate + migrate"
-            npm run prisma:generate --workspace=apps/api
-            npm run prisma:migrate:deploy --workspace=apps/api
+          echo "[DEPLOY] Build web"
+          npm run build --workspace=apps/web
 
-            echo "[DEPLOY] Build web"
-            npm run build --workspace=apps/web
+          echo "[DEPLOY] Restart PM2"
+          pm2 startOrReload ecosystem.config.cjs --update-env
+          pm2 save
 
-            echo "[DEPLOY] Restart PM2"
-            pm2 startOrReload ecosystem.config.cjs --update-env
-            pm2 save
+          echo "[DEPLOY] Healthchecks"
+          curl -sf --retry 12 --retry-delay 2 --retry-connrefused http://127.0.0.1:4202/health | grep -q '"ok":true' || { echo "API health failed"; exit 1; }
+          curl -sf --retry 12 --retry-delay 2 --retry-connrefused -o /dev/null -w "%{http_code}" http://127.0.0.1:4203 | grep -q 200 || { echo "Web health failed"; exit 1; }
+          curl -sf https://cinema-api.ryanprayoga.dev/health | grep -q '"ok":true' || { echo "Public API failed"; exit 1; }
 
-            echo "[DEPLOY] Healthchecks"
-            curl -sf --retry 12 --retry-delay 2 --retry-connrefused http://127.0.0.1:4202/health | grep -q '"ok":true' || { echo "API health failed"; exit 1; }
-            curl -sf --retry 12 --retry-delay 2 --retry-connrefused -o /dev/null -w "%{http_code}" http://127.0.0.1:4203 | grep -q 200 || { echo "Web health failed"; exit 1; }
-
-            echo "[DEPLOY] Public ingress"
-            curl -sf https://cinema-api.ryanprayoga.dev/health | grep -q '"ok":true' || { echo "Public API failed"; exit 1; }
-
-            echo "[DEPLOY] Success $(git rev-parse --short HEAD)"
+          echo "[DEPLOY] Success $(git rev-parse --short HEAD)"
