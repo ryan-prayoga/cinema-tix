@@ -35,43 +35,47 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="mx-auto max-w-sm">
-      <h1 className="mb-4 text-2xl font-bold">Daftar</h1>
-      <form onSubmit={submit} className="space-y-3">
-        <input
-          className="w-full rounded bg-panel px-3 py-2 ring-1 ring-white/10"
-          placeholder="Nama"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <input
-          className="w-full rounded bg-panel px-3 py-2 ring-1 ring-white/10"
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <input
-          className="w-full rounded bg-panel px-3 py-2 ring-1 ring-white/10"
-          type="password"
-          placeholder="Password (min 8 karakter)"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        {error && <p className="text-sm text-accent">{error}</p>}
-        <button
-          disabled={busy}
-          className="w-full rounded bg-accent py-2 font-medium disabled:opacity-50"
-        >
-          {busy ? "..." : "Daftar"}
-        </button>
-      </form>
-      <p className="mt-4 text-sm text-zinc-400">
-        Sudah punya akun?{" "}
-        <Link href="/login" className="text-accent">
-          Masuk
-        </Link>
-      </p>
+    <div className="mx-auto mt-8 max-w-sm animate-fade-up">
+      <div className="card p-7">
+        <h1 className="font-display text-4xl tracking-marquee text-cream">
+          Daftar
+        </h1>
+        <p className="mb-6 mt-1 font-mono text-xs text-cream/40">
+          Buat akun CINETIX
+        </p>
+        <form onSubmit={submit} className="space-y-3">
+          <input
+            className="input"
+            placeholder="Nama"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <input
+            className="input"
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <input
+            className="input"
+            type="password"
+            placeholder="Password (min 8 karakter)"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          {error && <p className="text-sm text-crimson-glow">{error}</p>}
+          <button disabled={busy} className="btn-primary w-full disabled:opacity-50">
+            {busy ? "..." : "Daftar"}
+          </button>
+        </form>
+        <p className="mt-5 text-sm text-cream/50">
+          Sudah punya akun?{" "}
+          <Link href="/login" className="text-gold hover:underline">
+            Masuk
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }

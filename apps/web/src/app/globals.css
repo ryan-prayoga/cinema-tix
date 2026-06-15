@@ -6,6 +6,99 @@
   color-scheme: dark;
 }
 
-body {
-  @apply bg-ink text-zinc-100 antialiased;
+@layer base {
+  body {
+    @apply bg-ink text-cream antialiased;
+    background-image:
+      radial-gradient(
+        1200px 600px at 50% -10%,
+        rgba(212, 162, 78, 0.08),
+        transparent 60%
+      ),
+      radial-gradient(
+        900px 500px at 100% 0%,
+        rgba(200, 30, 58, 0.06),
+        transparent 55%
+      );
+    background-attachment: fixed;
+  }
+
+  /* Marquee display headings */
+  h1,
+  h2,
+  h3 {
+    @apply font-display tracking-marquee;
+  }
+}
+
+@layer components {
+  /* Film-grain texture overlay */
+  .grain::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0.05;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* Soft cinema spotlight + vignette */
+  .spotlight {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(
+        70% 55% at 50% 38%,
+        transparent 0%,
+        transparent 55%,
+        rgba(0, 0, 0, 0.55) 100%
+      );
+  }
+
+  .card {
+    @apply rounded-xl bg-panel/70 ring-1 ring-white/5 backdrop-blur;
+  }
+
+  /* Art-deco hairline */
+  .deco-line {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(212, 162, 78, 0.5),
+      transparent
+    );
+    height: 1px;
+  }
+
+  .btn-primary {
+    @apply rounded-lg bg-crimson px-4 py-2.5 font-medium text-white
+      shadow-glow transition hover:bg-crimson-glow active:scale-[0.98];
+  }
+
+  .btn-ghost {
+    @apply rounded-lg bg-white/5 px-4 py-2.5 font-medium text-cream
+      ring-1 ring-white/10 transition hover:bg-white/10;
+  }
+
+  .input {
+    @apply w-full rounded-lg bg-black/30 px-4 py-3 text-cream
+      ring-1 ring-white/10 outline-none transition
+      placeholder:text-cream/30 focus:ring-gold/60;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(212, 162, 78, 0.25);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
 }

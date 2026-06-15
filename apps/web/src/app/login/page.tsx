@@ -9,7 +9,7 @@ import type { AuthResponse } from "@cinema-tix/shared";
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<p className="text-zinc-400">Memuat...</p>}>
+    <Suspense fallback={<p className="font-mono text-sm text-cream/40">Memuat...</p>}>
       <LoginForm />
     </Suspense>
   );
@@ -43,37 +43,41 @@ function LoginForm() {
   }
 
   return (
-    <div className="mx-auto max-w-sm">
-      <h1 className="mb-4 text-2xl font-bold">Masuk</h1>
-      <form onSubmit={submit} className="space-y-3">
-        <input
-          className="w-full rounded bg-panel px-3 py-2 ring-1 ring-white/10"
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <input
-          className="w-full rounded bg-panel px-3 py-2 ring-1 ring-white/10"
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        {error && <p className="text-sm text-accent">{error}</p>}
-        <button
-          disabled={busy}
-          className="w-full rounded bg-accent py-2 font-medium disabled:opacity-50"
-        >
-          {busy ? "..." : "Masuk"}
-        </button>
-      </form>
-      <p className="mt-4 text-sm text-zinc-400">
-        Belum punya akun?{" "}
-        <Link href="/register" className="text-accent">
-          Daftar
-        </Link>
-      </p>
+    <div className="mx-auto mt-8 max-w-sm animate-fade-up">
+      <div className="card p-7">
+        <h1 className="font-display text-4xl tracking-marquee text-cream">
+          Masuk
+        </h1>
+        <p className="mb-6 mt-1 font-mono text-xs text-cream/40">
+          Lanjut pesan kursimu
+        </p>
+        <form onSubmit={submit} className="space-y-3">
+          <input
+            className="input"
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <input
+            className="input"
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          {error && <p className="text-sm text-crimson-glow">{error}</p>}
+          <button disabled={busy} className="btn-primary w-full disabled:opacity-50">
+            {busy ? "..." : "Masuk"}
+          </button>
+        </form>
+        <p className="mt-5 text-sm text-cream/50">
+          Belum punya akun?{" "}
+          <Link href="/register" className="text-gold hover:underline">
+            Daftar
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }

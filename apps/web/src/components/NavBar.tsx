@@ -9,18 +9,30 @@ export function NavBar() {
   const router = useRouter();
 
   return (
-    <header className="border-b border-white/10 bg-panel/60 backdrop-blur sticky top-0 z-20">
-      <nav className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-        <Link href="/" className="text-lg font-bold tracking-tight">
-          🎬 cinema<span className="text-accent">tix</span>
+    <header className="sticky top-0 z-30 border-b border-white/5 bg-ink/70 backdrop-blur-xl">
+      <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
+        <Link href="/" className="group flex items-center gap-2.5">
+          <span className="grid h-8 w-8 place-items-center rounded-md bg-crimson text-base shadow-glow">
+            🎟
+          </span>
+          <span className="font-display text-2xl tracking-marquee text-cream">
+            CINE<span className="text-gold">TIX</span>
+          </span>
         </Link>
-        <div className="flex items-center gap-4 text-sm">
-          <Link href="/cinemas" className="hover:text-accent">
+
+        <div className="flex items-center gap-5 text-sm">
+          <Link
+            href="/cinemas"
+            className="hidden text-cream/70 transition hover:text-gold sm:block"
+          >
             Bioskop
           </Link>
           {user ? (
             <>
-              <Link href="/tickets" className="hover:text-accent">
+              <Link
+                href="/tickets"
+                className="text-cream/70 transition hover:text-gold"
+              >
                 Tiket Saya
               </Link>
               <button
@@ -28,21 +40,19 @@ export function NavBar() {
                   logout();
                   router.push("/");
                 }}
-                className="text-zinc-400 hover:text-accent"
+                className="rounded-lg px-3 py-1.5 text-cream/50 ring-1 ring-white/10 transition hover:text-crimson-glow"
               >
-                Keluar ({user.name.split(" ")[0]})
+                {user.name.split(" ")[0]} · Keluar
               </button>
             </>
           ) : (
-            <Link
-              href="/login"
-              className="rounded bg-accent px-3 py-1.5 font-medium"
-            >
+            <Link href="/login" className="btn-primary text-sm">
               Masuk
             </Link>
           )}
         </div>
       </nav>
+      <div className="deco-line" />
     </header>
   );
 }

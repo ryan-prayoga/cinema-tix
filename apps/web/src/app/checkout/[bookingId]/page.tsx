@@ -17,7 +17,6 @@ export default function CheckoutPage() {
     api<BookingDTO>(`/bookings/${bookingId}`, { auth: true }).then(setBooking);
   }, [bookingId]);
 
-  // Countdown to hold expiry.
   useEffect(() => {
     if (!booking?.expiresAt) return;
     const tick = () => {
@@ -49,71 +48,92 @@ export default function CheckoutPage() {
     router.push("/");
   }
 
-  if (!booking) return <p className="text-zinc-400">Memuat...</p>;
+  if (!booking) return <p className="font-mono text-sm text-cream/40">Memuat...</p>;
 
   const mm = String(Math.floor(left / 60)).padStart(2, "0");
   const ss = String(left % 60).padStart(2, "0");
 
   return (
-    <div className="mx-auto max-w-md">
-      <h1 className="mb-4 text-2xl font-bold">Pembayaran</h1>
+    <div className="mx-auto mt-4 max-w-md animate-fade-up">
+      <h1 className="mb-5 font-display text-4xl tracking-marquee text-cream">
+        Pembayaran
+      </h1>
 
-      <div className="rounded-lg bg-panel p-4 ring-1 ring-white/5">
-        <h2 className="font-semibold">{booking.showtime?.movie?.title}</h2>
-        <p className="text-sm text-zinc-400">
-          {booking.showtime?.cinema?.name} · {booking.showtime?.auditoriumName}
-        </p>
-        <p className="text-sm text-zinc-400">
-          {booking.showtime && formatDateTime(booking.showtime.startsAt)}
-        </p>
+      {/* Ticket stub */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-panel2 to-panel ring-1 ring-white/10">
+        <div className="absolute left-0 top-0 h-full w-1.5 bg-crimson" />
+        <div className="p-6">
+          <h2 className="font-display text-2xl tracking-wide text-cream">
+            {booking.showtime?.movie?.title}
+          </h2>
+          <p className="mt-1 font-mono text-xs text-cream/50">
+            {booking.showtime?.cinema?.name} · {booking.showtime?.auditoriumName}
+          </p>
+          <p className="font-mono text-xs text-gold">
+            {booking.showtime && formatDateTime(booking.showtime.startsAt)}
+          </p>
 
-        <div className="my-3 border-t border-white/10" />
+          {/* perforation */}
+          <div className="my-5 flex items-center gap-2">
+            <div className="h-3 w-3 -ml-7 rounded-full bg-ink" />
+            <div className="flex-1 border-t border-dashed border-white/15" />
+            <div className="h-3 w-3 -mr-7 rounded-full bg-ink" />
+          </div>
 
-        <div className="space-y-1 text-sm">
-          {booking.seats.map((s) => (
-            <div key={s.seatId} className="flex justify-between">
-              <span>
-                Kursi {s.rowLabel}
-                {s.colNumber}
-              </span>
-              <span>{rupiah(s.price)}</span>
-            </div>
-          ))}
-        </div>
+          <div className="space-y-1.5 font-mono text-sm">
+            {booking.seats.map((s) => (
+              <div key={s.seatId} className="flex justify-between text-cream/80">
+                <span>
+                  Kursi{" "}
+                  <span className="text-gold">
+                    {s.rowLabel}
+                    {s.colNumber}
+                  </span>
+                </span>
+                <span>{rupiah(s.price)}</span>
+              </div>
+            ))}
+          </div>
 
-        <div className="my-3 border-t border-white/10" />
-        <div className="flex justify-between font-bold">
-          <span>Total</span>
-          <span>{rupiah(booking.totalPrice)}</span>
+          <div className="mt-4 flex items-baseline justify-between border-t border-white/10 pt-4">
+            <span className="font-mono text-xs uppercase tracking-widest text-cream/50">
+              Total
+            </span>
+            <span className="font-display text-3xl tracking-wide text-cream">
+              {rupiah(booking.totalPrice)}
+            </span>
+          </div>
         </div>
       </div>
 
       {booking.status === "PENDING" && (
         <>
-          <p className="mt-3 text-center text-sm text-zinc-400">
+          <p className="mt-4 text-center font-mono text-xs text-cream/50">
             Selesaikan dalam{" "}
-            <span className="font-mono text-accent">
+            <span className="text-lg text-crimson-glow">
               {mm}:{ss}
             </span>
           </p>
           <button
             onClick={pay}
             disabled={busy || left === 0}
-            className="mt-3 w-full rounded bg-accent py-3 font-medium disabled:opacity-50"
+            className="btn-primary mt-3 w-full py-3.5 text-base disabled:opacity-50"
           >
-            {busy ? "..." : "Bayar (mock)"}
+            {busy ? "..." : "Bayar Sekarang"}
           </button>
           <button
             onClick={cancel}
-            className="mt-2 w-full rounded py-2 text-sm text-zinc-400"
+            className="mt-2 w-full py-2 font-mono text-xs text-cream/40 hover:text-crimson-glow"
           >
-            Batalkan
+            Batalkan pesanan
           </button>
         </>
       )}
 
       {booking.status === "PAID" && (
-        <p className="mt-4 text-center text-emerald-400">Sudah dibayar ✓</p>
+        <p className="mt-5 text-center font-mono text-sm text-gold">
+          ✓ Sudah dibayar
+        </p>
       )}
     </div>
   );
