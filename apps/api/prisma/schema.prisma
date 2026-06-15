@@ -1,0 +1,149 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum MovieStatus {
+  NOW_SHOWING
+  COMING_SOON
+  ARCHIVED
+}
+
+enum SeatType {
+  REGULAR
+  PREMIUM
+  DISABLED
+}
+
+enum BookingStatus {
+  PENDING
+  PAID
+  CANCELLED
+  EXPIRED
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  role         UserRole  @default(USER)
+  createdAt    DateTime  @default(now())
+  bookings     Booking[]
+  seatLocks    SeatLock[]
+}
+
+model Movie {
+  id          String      @id @default(cuid())
+  title       String
+  synopsis    String      @default("")
+  durationMin Int
+  posterUrl   String      @default("")
+  rating      String      @default("SU")
+  genres      String[]
+  releaseDate DateTime
+  status      MovieStatus @default(NOW_SHOWING)
+  showtimes   Showtime[]
+}
+
+model Cinema {
+  id          String       @id @default(cuid())
+  name        String
+  city        String
+  address     String       @default("")
+  lat         Float?
+  lng         Float?
+  auditoriums Auditorium[]
+}
+
+model Auditorium {
+  id          String     @id @default(cuid())
+  cinemaId    String
+  cinema      Cinema     @relation(fields: [cinemaId], references: [id], onDelete: Cascade)
+  name        String
+  screenLabel String     @default("LAYAR")
+  rows        Int
+  cols        Int
+  seats       Seat[]
+  showtimes   Showtime[]
+}
+
+model Seat {
+  id           String        @id @default(cuid())
+  auditoriumId String
+  auditorium   Auditorium    @relation(fields: [auditoriumId], references: [id], onDelete: Cascade)
+  rowLabel     String
+  colNumber    Int
+  type         SeatType      @default(REGULAR)
+  // layout coords: x/y for 2D map, z for 3D tier height (Fase 2)
+  x            Float         @default(0)
+  y            Float         @default(0)
+  z            Float         @default(0)
+  bookingSeats BookingSeat[]
+  seatLocks    SeatLock[]
+
+  @@unique([auditoriumId, rowLabel, colNumber])
+}
+
+model Showtime {
+  id              String     @id @default(cuid())
+  movieId         String
+  movie           Movie      @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  auditoriumId    String
+  auditorium      Auditorium @relation(fields: [auditoriumId], references: [id], onDelete: Cascade)
+  startsAt        DateTime
+  basePrice       Int
+  priceMultiplier Float      @default(1.0)
+  bookings        Booking[]
+  seatLocks       SeatLock[]
+}
+
+model Booking {
+  id         String        @id @default(cuid())
+  userId     String
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  showtimeId String
+  showtime   Showtime      @relation(fields: [showtimeId], references: [id], onDelete: Cascade)
+  status     BookingStatus @default(PENDING)
+  totalPrice Int           @default(0)
+  createdAt  DateTime      @default(now())
+  expiresAt  DateTime?
+  seats      BookingSeat[]
+}
+
+model BookingSeat {
+  id         String   @id @default(cuid())
+  bookingId  String
+  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  seatId     String
+  seat       Seat     @relation(fields: [seatId], references: [id], onDelete: Cascade)
+  showtimeId String
+  price      Int
+
+  // One active seat row per (showtime, seat). Cancelled/expired rows are deleted
+  // so this unique index enforces no double-book at the DB layer.
+  @@unique([showtimeId, seatId])
+}
+
+model SeatLock {
+  id         String   @id @default(cuid())
+  showtimeId String
+  showtime   Showtime @relation(fields: [showtimeId], references: [id], onDelete: Cascade)
+  seatId     String
+  seat       Seat     @relation(fields: [seatId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lockedAt   DateTime @default(now())
+  expiresAt  DateTime
+
+  @@unique([showtimeId, seatId])
+}

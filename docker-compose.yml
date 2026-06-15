@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cinema-tix-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cinema
+      POSTGRES_PASSWORD: cinema
+      POSTGRES_DB: cinema_tix
+    ports:
+      - "5433:5432"
+    volumes:
+      - cinema_pgdata:/var/lib/postgresql/data
+
+volumes:
+  cinema_pgdata:
